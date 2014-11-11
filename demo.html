@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+
+<title>Jie Dialog</title>
+
+<script src="bower_components/webcomponentsjs/webcomponents.js"></script>
+<link rel="import" href="jie-dialog.html">
+
+</head>
+<body>
+
+<button>打开对话框</button>
+
+<jie-dialog label="输入确认框" confirmlabel="确认" unconfirmlabel="关闭">
+  <input data-source value="Hello World" style="margin: 2em; padding: 0.5em 1em;">
+</jie-dialog>
+
+<script>
+  var dialog = document.querySelector('jie-dialog');
+  dialog.addEventListener('save', function (event) {
+    console.log('save', event.detail.value);
+  });
+  dialog.addEventListener('discard', function (event) {
+    console.log('discard', event.detail.value);
+  });
+
+  var btn = document.querySelector('button');
+  btn.addEventListener('click', function (e) {
+    dialog.open();
+  });
+</script>
+
+</body>
+</html>

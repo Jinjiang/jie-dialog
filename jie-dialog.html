@@ -1,0 +1,257 @@
+<!--
+  # dialog
+
+  对话框
+
+  * 可以打开、保存并关闭、不保存并关闭对话框
+  * 可以随意添加内容
+  * 可以在打开和保存时和内容的数据进行交流
+
+  该对话框会：
+
+  * 提供label, confirmlabel, unconfirmlabel, width四个外设特性
+  * 自动绑定标签里带有[data-source]的第一个元素的value值
+  * 提供open(value), confirm(), unconfirm()三种方法
+  * 同时提供save, discard两个事件可供监听
+
+  ## Example
+
+  <jie-dialog label="添加网址" width="640">
+    请输入你想访问的网址：<br>
+    <input type="url" data-source value="http://">
+  </jie-dialog>
+
+  <script>
+    var dialog = document.querySelector('jie-dialog');
+
+    dialog.open('http://www.google.com/');
+
+    dialog.addEventListener('save', function (e) {...});
+    // dialog.confirm();
+
+    dialog.addEventListener('discard', function (e) {...});
+    // dialog.unconfirm();
+  </script>
+-->
+
+<link rel="import" href="bower_components/polymer/polymer.html">
+
+<polymer-element name="jie-dialog" attributes="label, confirmlabel, unconfirmlabel, width, height">
+
+  <template>
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css">
+
+    <style>
+      :host {position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: none; z-index: 1000;}
+      #modal {display: block;}
+      .modal-content {height: 100%;}
+      .modal-body {overflow: auto; padding: 0;}
+      .modal-footer {margin-top: 0;}
+    </style>
+
+    <div id="modal" class="modal">
+      <div id="dialog" class="modal-dialog">
+        <div class="modal-content" layout vertical>
+          <div class="modal-header" style="display: {{label ? '' : 'none'}}">
+            <button type="button" class="close" data-dismiss="modal" on-click="{{unconfirm}}"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">{{label}}</h4>
+          </div>
+          <div class="modal-body">
+            <content></content>
+          </div>
+          <div class="modal-footer" style="display: {{(confirmlabel || unconformlabel) ? '' : 'none'}}">
+            <button style="display: {{confirmlabel ? '' : 'none'}}" id="btnconfirm" type="button" class="btn btn-primary" on-click="{{confirm}}">{{confirmlabel}}</button>
+            <button style="display: {{unconfirmlabel ? '' : 'none'}}" id="btnclose" type="button" class="btn btn-default" on-click="{{unconfirm}}" data-dismiss="modal">{{unconfirmlabel}}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="mask" class="modal-backdrop fade in"></div>
+  </template>
+
+  <script>
+    (function () {
+      Polymer('jie-dialog', {
+
+        /**
+         * 对话框标题，如果为空则标题不显示
+         * @type {String}
+         */
+        label: '',
+
+        /**
+         * 确认按钮的文案，如果为空则按钮不显示
+         * @type {String}
+         */
+        confirmlabel: '',
+
+        /**
+         * 取消按钮的文案，如果为空则按钮不显示
+         * @type {String}
+         */
+        unconfirmlabel: '',
+
+        /**
+         * 对话框的宽度，默认为Bootstrap对话框宽度
+         * @type {String}
+         */
+        width: '',
+
+        /**
+         * 对话框的高度，默认为Bootstrap对话框宽度
+         * @type {String}
+         */
+        height: '',
+
+        /**
+         * 记录对话框是否已经被打开
+         * @type {Boolean}
+         */
+        opened: false,
+
+        /**
+         * 元素被创建时，根据 this.width 设置对话框宽度
+         */
+        domReady: function () {
+          var dataSource = this.querySelector('[data-source]');
+          var self = this;
+
+          dataSource.addEventListener('confirm', function (e) {
+            self.confirm();
+          });
+          dataSource.addEventListener('unconfirm', function () {
+            self.unconfirm();
+          });
+
+          this.setWidth(this.width);
+          this.setWidth(this.height);
+        },
+
+        /**
+         * 当 this.width 改变时，更新对话框宽度
+         * @param  {String} oldValue
+         * @param  {String} newValue
+         */
+        widthChanged: function(oldValue, newValue) {
+          this.setWidth(newValue);
+        },
+
+        /**
+         * 当 this.height 改变时，更新对话框高度
+         * @param  {String} oldValue
+         * @param  {String} newValue
+         */
+        heightChanged: function(oldValue, newValue) {
+          this.setHeight(newValue);
+        },
+
+        /**
+         * 设置对话框宽度，如果宽度值不为空，则设置其CSS的width，否则保持默认宽度
+         * @param {String} value
+         */
+        setWidth: function (value) {
+          var width = value && value.toString();
+          var dialog = this.$.dialog;
+          if (width) {
+            dialog.style.width = width;
+          }
+          else {
+            dialog.style.width = '';
+          }
+        },
+
+        /**
+         * 设置对话框高度，如果高度值不为空，则设置其CSS的width，否则保持默认高度
+         * @param {String} value
+         */
+        setHeight: function (value) {
+          var height = value && value.toString();
+          var dialog = this.$.dialog;
+          if (height) {
+            dialog.style.height = height;
+          }
+          else {
+            dialog.style.height = '';
+          }
+        },
+
+        /**
+         * 载入数据，找到对话框中的数据承载元素并设置其 value
+         * 如果参数个数为0，则保持对话框原本的数据不变
+         * @param {any} value 要设置的数据
+         */
+        load: function (value) {
+          var dataSource = this.querySelector('[data-source]');
+          if (arguments.length > 0 && dataSource) {
+            dataSource.value = value;
+          }
+        },
+
+        /**
+         * 保存数据，找到对话框中的数据承载元素并取得其 value
+         * 并触发 save 事件
+         */
+        save: function () {
+          var value;
+          var dataSource = this.querySelector('[data-source]');
+          if (dataSource) {
+            value = dataSource.value;
+          }
+          this.fire('save', {value: dataSource.value});
+        },
+
+        /**
+         * 放弃保存数据，并触发 discard 事件
+         */
+        discard: function () {
+          var value;
+          var dataSource = this.querySelector('[data-source]');
+          if (dataSource) {
+            value = dataSource.value;
+          }
+          this.fire('discard', {value: dataSource.value});
+        },
+
+        /**
+         * 点击对话框的“确认”按钮
+         * 保存数据并关闭对话框
+         */
+        confirm: function () {
+          this.save();
+          this.close();
+        },
+
+        /**
+         * 点击对话框的“取消”按钮
+         * 放弃保存数据并关闭对话框
+         */
+        unconfirm: function () {
+          this.discard();
+          this.close();
+        },
+
+        /**
+         * 打开对话框，如果传了参数则同时给对话框赋值
+         * @param {any} value
+         */
+        open: function (value) {
+          if (!this.opened && arguments.length > 0) {
+            this.load(value);
+          }
+          this.opened = true;
+          this.style.display = 'block';
+        },
+
+        /**
+         * 关闭对话框
+         */
+        close: function () {
+          this.opened = false;
+          this.style.display = '';
+        }
+      });
+    })();
+  </script>
+
+</polymer-element>
